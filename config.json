@@ -1,0 +1,15 @@
+{
+    "subreddits": [
+        {
+            "name": "ClaudeCode",
+            "minScore": 10,
+            "minComments": 5
+        }
+    ],
+    "defaults": {
+        "minScore": 10,
+        "minComments": 5,
+        "hoursBack": 24,
+        "commentsPerPost": 10
+    }
+}
