@@ -28,7 +28,7 @@ An Express/TypeScript server that automatically collects and filters Reddit post
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-username/reddit-summarizer.git
+git clone https://github.com/nathanonn/reddit-summarizer.git
 cd reddit-summarizer
 ```
 
@@ -55,14 +55,14 @@ REDDIT_REFRESH_TOKEN=
 PORT=5566
 ```
 
-| Variable | Required | Description |
-|---|---|---|
-| `REDDIT_CLIENT_ID` | Yes | From your Reddit app's settings page |
-| `REDDIT_CLIENT_SECRET` | Yes | From your Reddit app's settings page |
-| `REDDIT_REDIRECT_URI` | Yes | Must match the redirect URI registered in your Reddit app |
-| `REDDIT_USERNAME` | Yes | Your Reddit username (used in the User-Agent header) |
-| `REDDIT_REFRESH_TOKEN` | No* | Obtained after completing the OAuth flow (see below) |
-| `PORT` | No | Server port (defaults to `5566`) |
+| Variable               | Required | Description                                               |
+| ---------------------- | -------- | --------------------------------------------------------- |
+| `REDDIT_CLIENT_ID`     | Yes      | From your Reddit app's settings page                      |
+| `REDDIT_CLIENT_SECRET` | Yes      | From your Reddit app's settings page                      |
+| `REDDIT_REDIRECT_URI`  | Yes      | Must match the redirect URI registered in your Reddit app |
+| `REDDIT_USERNAME`      | Yes      | Your Reddit username (used in the User-Agent header)      |
+| `REDDIT_REFRESH_TOKEN` | No\*     | Obtained after completing the OAuth flow (see below)      |
+| `PORT`                 | No       | Server port (defaults to `5566`)                          |
 
 > \* The refresh token is required for data collection but is obtained through the app itself.
 
@@ -72,35 +72,35 @@ Edit `config.json` to specify which subreddits to monitor and their filtering th
 
 ```json
 {
-  "subreddits": [
-    {
-      "name": "typescript",
-      "minScore": 10,
-      "minComments": 5
-    },
-    {
-      "name": "node",
-      "minScore": 20
+    "subreddits": [
+        {
+            "name": "typescript",
+            "minScore": 10,
+            "minComments": 5
+        },
+        {
+            "name": "node",
+            "minScore": 20
+        }
+    ],
+    "defaults": {
+        "minScore": 10,
+        "minComments": 5,
+        "hoursBack": 24,
+        "commentsPerPost": 10
     }
-  ],
-  "defaults": {
-    "minScore": 10,
-    "minComments": 5,
-    "hoursBack": 24,
-    "commentsPerPost": 10
-  }
 }
 ```
 
-| Field | Description |
-|---|---|
-| `subreddits[].name` | Subreddit name (1-21 alphanumeric characters or underscores) |
-| `subreddits[].minScore` | Minimum upvote score (overrides default) |
-| `subreddits[].minComments` | Minimum comment count (overrides default) |
-| `defaults.minScore` | Default minimum upvote score |
-| `defaults.minComments` | Default minimum comment count |
-| `defaults.hoursBack` | How far back to fetch posts in hours (1-168) |
-| `defaults.commentsPerPost` | Number of top comments to fetch per post |
+| Field                      | Description                                                  |
+| -------------------------- | ------------------------------------------------------------ |
+| `subreddits[].name`        | Subreddit name (1-21 alphanumeric characters or underscores) |
+| `subreddits[].minScore`    | Minimum upvote score (overrides default)                     |
+| `subreddits[].minComments` | Minimum comment count (overrides default)                    |
+| `defaults.minScore`        | Default minimum upvote score                                 |
+| `defaults.minComments`     | Default minimum comment count                                |
+| `defaults.hoursBack`       | How far back to fetch posts in hours (1-168)                 |
+| `defaults.commentsPerPost` | Number of top comments to fetch per post                     |
 
 A post passes the filter if it meets **either** the score threshold **or** the comment count threshold.
 
@@ -123,10 +123,10 @@ npm run dev
 
 ### Authentication
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/auth/reddit` | Starts the Reddit OAuth flow |
-| `GET` | `/auth/reddit/callback` | OAuth callback handler (automatic) |
+| Method | Endpoint                | Description                        |
+| ------ | ----------------------- | ---------------------------------- |
+| `GET`  | `/auth/reddit`          | Starts the Reddit OAuth flow       |
+| `GET`  | `/auth/reddit/callback` | OAuth callback handler (automatic) |
 
 ### Data Collection
 
@@ -135,29 +135,31 @@ npm run dev
 Collect and filter posts from a single subreddit.
 
 **Request body:**
+
 ```json
 {
-  "subreddit": "typescript",
-  "hours": 24
+    "subreddit": "typescript",
+    "hours": 24
 }
 ```
 
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `subreddit` | string | Yes | Subreddit to collect from |
-| `hours` | number | No | Hours to look back (1-168, default: 24) |
+| Field       | Type   | Required | Description                             |
+| ----------- | ------ | -------- | --------------------------------------- |
+| `subreddit` | string | Yes      | Subreddit to collect from               |
+| `hours`     | number | No       | Hours to look back (1-168, default: 24) |
 
 **Response:**
+
 ```json
 {
-  "subreddit": "typescript",
-  "postsCollected": 150,
-  "postsFiltered": 12,
-  "timeRange": {
-    "from": "2026-03-22T12:00:00.000Z",
-    "to": "2026-03-23T12:00:00.000Z"
-  },
-  "filePath": "logs/typescript/2026-03-23.json"
+    "subreddit": "typescript",
+    "postsCollected": 150,
+    "postsFiltered": 12,
+    "timeRange": {
+        "from": "2026-03-22T12:00:00.000Z",
+        "to": "2026-03-23T12:00:00.000Z"
+    },
+    "filePath": "logs/typescript/2026-03-23.json"
 }
 ```
 
@@ -166,9 +168,10 @@ Collect and filter posts from a single subreddit.
 Collect and filter posts from **all** configured subreddits.
 
 **Request body:**
+
 ```json
 {
-  "hours": 48
+    "hours": 48
 }
 ```
 
@@ -202,7 +205,7 @@ Check whether a refresh token is configured:
 
 ```json
 {
-  "connected": true
+    "connected": true
 }
 ```
 
