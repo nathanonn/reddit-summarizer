@@ -35,6 +35,8 @@ export interface AppConfig {
   };
 }
 
+export type OutputMode = 'log' | 'response' | 'both';
+
 export interface CollectResult {
   subreddit: string;
   postsCollected: number;
@@ -43,7 +45,8 @@ export interface CollectResult {
     from: string;
     to: string;
   };
-  filePath: string;
+  filePath?: string;
+  posts?: Post[];
 }
 
 export interface LogEntry {

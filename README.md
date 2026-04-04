@@ -55,14 +55,19 @@ REDDIT_REFRESH_TOKEN=
 PORT=5566
 ```
 
-| Variable               | Required | Description                                               |
-| ---------------------- | -------- | --------------------------------------------------------- |
-| `REDDIT_CLIENT_ID`     | Yes      | From your Reddit app's settings page                      |
-| `REDDIT_CLIENT_SECRET` | Yes      | From your Reddit app's settings page                      |
-| `REDDIT_REDIRECT_URI`  | Yes      | Must match the redirect URI registered in your Reddit app |
-| `REDDIT_USERNAME`      | Yes      | Your Reddit username (used in the User-Agent header)      |
-| `REDDIT_REFRESH_TOKEN` | No\*     | Obtained after completing the OAuth flow (see below)      |
-| `PORT`                 | No       | Server port (defaults to `5566`)                          |
+| Variable                       | Required | Description                                               |
+| ------------------------------ | -------- | --------------------------------------------------------- |
+| `REDDIT_CLIENT_ID`             | Yes      | From your Reddit app's settings page                      |
+| `REDDIT_CLIENT_SECRET`         | Yes      | From your Reddit app's settings page                      |
+| `REDDIT_REDIRECT_URI`          | Yes      | Must match the redirect URI registered in your Reddit app |
+| `REDDIT_USERNAME`              | Yes      | Your Reddit username (used in the User-Agent header)      |
+| `REDDIT_REFRESH_TOKEN`         | No\*     | Obtained after completing the OAuth flow (see below)      |
+| `PORT`                         | No       | Server port (defaults to `5566`)                          |
+| `REDDIT_SUBREDDITS`            | No       | JSON array of subreddit configs (overrides config.json)   |
+| `REDDIT_DEFAULT_MIN_SCORE`     | No       | Override default minimum upvote score                     |
+| `REDDIT_DEFAULT_MIN_COMMENTS`  | No       | Override default minimum comment count                    |
+| `REDDIT_DEFAULT_HOURS_BACK`    | No       | Override default hours to look back (1-168)               |
+| `REDDIT_DEFAULT_COMMENTS_PER_POST` | No   | Override default number of top comments per post          |
 
 > \* The refresh token is required for data collection but is obtained through the app itself.
 
@@ -104,6 +109,29 @@ Edit `config.json` to specify which subreddits to monitor and their filtering th
 
 A post passes the filter if it meets **either** the score threshold **or** the comment count threshold.
 
+#### Environment variable overrides
+
+All configuration values can be overridden via environment variables. The priority order is:
+
+1. **Environment variables** (highest)
+2. **config.json**
+3. **Built-in defaults**
+
+If `REDDIT_SUBREDDITS` is set, `config.json` is entirely optional. Set it to a JSON array:
+
+```bash
+REDDIT_SUBREDDITS='[{"name":"typescript","minScore":10,"minComments":5},{"name":"node","minScore":20}]'
+```
+
+Override default thresholds individually:
+
+```bash
+REDDIT_DEFAULT_MIN_SCORE=20
+REDDIT_DEFAULT_MIN_COMMENTS=10
+REDDIT_DEFAULT_HOURS_BACK=48
+REDDIT_DEFAULT_COMMENTS_PER_POST=5
+```
+
 ### 5. Start the server
 
 ```bash
@@ -139,16 +167,26 @@ Collect and filter posts from a single subreddit.
 ```json
 {
     "subreddit": "typescript",
-    "hours": 24
+    "hours": 24,
+    "output": "both"
 }
 ```
 
-| Field       | Type   | Required | Description                             |
-| ----------- | ------ | -------- | --------------------------------------- |
-| `subreddit` | string | Yes      | Subreddit to collect from               |
-| `hours`     | number | No       | Hours to look back (1-168, default: 24) |
+| Field       | Type   | Required | Description                                                         |
+| ----------- | ------ | -------- | ------------------------------------------------------------------- |
+| `subreddit` | string | Yes      | Subreddit to collect from                                           |
+| `hours`     | number | No       | Hours to look back (1-168, default: 24)                             |
+| `output`    | string | No       | `"log"` (default), `"response"`, or `"both"` — controls output mode |
 
-**Response:**
+**Output modes:**
+
+| Mode       | Saves to disk | Returns posts in response |
+| ---------- | ------------- | ------------------------- |
+| `log`      | Yes           | No                        |
+| `response` | No            | Yes                       |
+| `both`     | Yes           | Yes                       |
+
+**Response (`output: "log"`):**
 
 ```json
 {
@@ -163,6 +201,29 @@ Collect and filter posts from a single subreddit.
 }
 ```
 
+**Response (`output: "both"`):**
+
+```json
+{
+    "subreddit": "typescript",
+    "postsCollected": 150,
+    "postsFiltered": 12,
+    "timeRange": {
+        "from": "2026-03-22T12:00:00.000Z",
+        "to": "2026-03-23T12:00:00.000Z"
+    },
+    "filePath": "logs/typescript/2026-03-23.json",
+    "posts": [
+        {
+            "id": "abc123",
+            "title": "Post title",
+            "score": 42,
+            "comments": []
+        }
+    ]
+}
+```
+
 #### `POST /api/collect-all`
 
 Collect and filter posts from **all** configured subreddits.
@@ -171,11 +232,17 @@ Collect and filter posts from **all** configured subreddits.
 
 ```json
 {
-    "hours": 48
+    "hours": 48,
+    "output": "log"
 }
 ```
 
-**Response:** Array of per-subreddit results (same shape as `/api/collect`, plus a `status` field of `"ok"` or `"error"`).
+| Field    | Type   | Required | Description                                                         |
+| -------- | ------ | -------- | ------------------------------------------------------------------- |
+| `hours`  | number | No       | Hours to look back (1-168, default: 24)                             |
+| `output` | string | No       | `"log"` (default), `"response"`, or `"both"` — controls output mode |
+
+**Response:** Array of per-subreddit results (same shape as `/api/collect`, plus a `status` field of `"ok"` or `"error"`). When `output` is `"response"` or `"both"`, each entry includes a `posts` array.
 
 ### Logs
 

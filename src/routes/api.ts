@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { loadConfig } from '../config';
-import { AppConfig } from '../types';
+import { AppConfig, OutputMode } from '../types';
 import { ensureAccessToken, fetchPosts, fetchComments, filterPosts, RedditApiError } from '../services/reddit';
 import { savePosts, readLog, listLogs } from '../services/storage';
 
@@ -8,6 +8,7 @@ const router = Router();
 
 const SUBREDDIT_REGEX = /^[a-zA-Z0-9_]{1,21}$/;
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/;
+const VALID_OUTPUT_MODES: OutputMode[] = ['log', 'response', 'both'];
 
 // Lazy-load config to avoid circular imports with index.ts
 let _config: AppConfig | null = null;
@@ -25,7 +26,7 @@ router.get('/status', (_req, res) => {
 
 // POST /collect — Collect posts for one subreddit
 router.post('/collect', async (req, res) => {
-  const { subreddit, hours } = req.body;
+  const { subreddit, hours, output } = req.body;
 
   // Validate subreddit
   if (!subreddit || typeof subreddit !== 'string') {
@@ -49,6 +50,13 @@ router.post('/collect', async (req, res) => {
       return;
     }
     hoursBack = hours;
+  }
+
+  // Validate output mode
+  const outputMode: OutputMode = output ?? 'log';
+  if (!VALID_OUTPUT_MODES.includes(outputMode)) {
+    res.status(400).json({ error: `Invalid output parameter: "${output}". Must be one of: log, response, both.` });
+    return;
   }
 
   try {
@@ -83,13 +91,16 @@ router.post('/collect', async (req, res) => {
       post.comments = await fetchComments(post.id, commentsPerPost);
     }
 
-    // Save to disk
-    const filePath = savePosts(subreddit, filtered);
+    // Save to disk (unless output is 'response' only)
+    let filePath: string | undefined;
+    if (outputMode !== 'response') {
+      filePath = savePosts(subreddit, filtered);
+    }
 
     const now = new Date();
     const from = new Date(now.getTime() - hoursBack * 3600 * 1000);
 
-    res.json({
+    const result: Record<string, any> = {
       subreddit,
       postsCollected: allPosts.length,
       postsFiltered: filtered.length,
@@ -97,8 +108,17 @@ router.post('/collect', async (req, res) => {
         from: from.toISOString(),
         to: now.toISOString(),
       },
-      filePath,
-    });
+    };
+
+    if (filePath) {
+      result.filePath = filePath;
+    }
+
+    if (outputMode !== 'log') {
+      result.posts = filtered;
+    }
+
+    res.json(result);
   } catch (err) {
     if (err instanceof RedditApiError) {
       res.status(err.statusCode).json({ error: err.message });
@@ -116,7 +136,7 @@ router.post('/collect', async (req, res) => {
 
 // POST /collect-all — Collect posts for all configured subreddits
 router.post('/collect-all', async (req, res) => {
-  const { hours } = req.body || {};
+  const { hours, output } = req.body || {};
 
   // Validate hours
   let hoursBack = 24;
@@ -130,6 +150,13 @@ router.post('/collect-all', async (req, res) => {
       return;
     }
     hoursBack = hours;
+  }
+
+  // Validate output mode
+  const outputMode: OutputMode = output ?? 'log';
+  if (!VALID_OUTPUT_MODES.includes(outputMode)) {
+    res.status(400).json({ error: `Invalid output parameter: "${output}". Must be one of: log, response, both.` });
+    return;
   }
 
   try {
@@ -159,11 +186,15 @@ router.post('/collect-all', async (req, res) => {
         post.comments = await fetchComments(post.id, commentsPerPost);
       }
 
-      const filePath = savePosts(subConfig.name, filtered);
+      let filePath: string | undefined;
+      if (outputMode !== 'response') {
+        filePath = savePosts(subConfig.name, filtered);
+      }
+
       const now = new Date();
       const from = new Date(now.getTime() - hoursBack * 3600 * 1000);
 
-      results.push({
+      const entry: Record<string, any> = {
         subreddit: subConfig.name,
         status: 'ok',
         postsCollected: allPosts.length,
@@ -172,8 +203,17 @@ router.post('/collect-all', async (req, res) => {
           from: from.toISOString(),
           to: now.toISOString(),
         },
-        filePath,
-      });
+      };
+
+      if (filePath) {
+        entry.filePath = filePath;
+      }
+
+      if (outputMode !== 'log') {
+        entry.posts = filtered;
+      }
+
+      results.push(entry);
       anySuccess = true;
     } catch (err) {
       const message = err instanceof RedditApiError
