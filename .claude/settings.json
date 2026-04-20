@@ -2,10 +2,6 @@
     "permissions": {
         "deny": ["Read(./.env)"]
     },
-    "sandbox": {
-        "enabled": true,
-        "autoAllowBashIfSandboxed": true
-    },
     "hooks": {
         "SessionStart": [
             {
