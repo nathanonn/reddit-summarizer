@@ -43,23 +43,35 @@ export async function ensureAccessToken(): Promise<string> {
   }
 
   // Refresh the token
-  const response = await axios.post(
-    'https://www.reddit.com/api/v1/access_token',
-    new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: process.env.REDDIT_REFRESH_TOKEN,
-    }).toString(),
-    {
-      auth: {
-        username: process.env.REDDIT_CLIENT_ID!,
-        password: process.env.REDDIT_CLIENT_SECRET!,
-      },
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'User-Agent': `reddit-summarizer/1.0 by ${process.env.REDDIT_USERNAME}`,
-      },
+  let response;
+  try {
+    response = await axios.post(
+      'https://www.reddit.com/api/v1/access_token',
+      new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: process.env.REDDIT_REFRESH_TOKEN,
+      }).toString(),
+      {
+        auth: {
+          username: process.env.REDDIT_CLIENT_ID!,
+          password: process.env.REDDIT_CLIENT_SECRET!,
+        },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'User-Agent': `reddit-summarizer/1.0 by ${process.env.REDDIT_USERNAME}`,
+        },
+      }
+    );
+  } catch (err: any) {
+    if (err.response) {
+      const status = err.response.status;
+      if (status === 401 || status === 403) {
+        throw new RedditApiError(401, 'Reddit refresh token is invalid or revoked. Re-run OAuth setup.');
+      }
+      throw new RedditApiError(status, `Failed to refresh Reddit access token: ${status}`);
     }
-  );
+    throw new RedditApiError(502, 'Reddit token endpoint unreachable');
+  }
 
   cachedToken = {
     accessToken: response.data.access_token,
