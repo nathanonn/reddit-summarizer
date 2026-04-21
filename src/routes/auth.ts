@@ -35,7 +35,7 @@ router.get('/reddit', (_req, res) => {
     state,
     redirect_uri: process.env.REDDIT_REDIRECT_URI!,
     duration: 'permanent',
-    scope: 'read',
+    scope: 'read identity',
   });
 
   res.redirect(302, `https://www.reddit.com/api/v1/authorize?${params.toString()}`);

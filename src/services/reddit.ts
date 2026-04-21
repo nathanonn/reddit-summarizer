@@ -109,7 +109,6 @@ export async function fetchIdentity(): Promise<RedditIdentity> {
         });
     } catch (err: any) {
         if (err.response) {
-            console.error("Reddit /api/v1/me error:", err.response);
             const status = err.response.status;
             if (status === 401 || status === 403) {
                 throw new RedditApiError(401, "Reddit access token rejected by /api/v1/me. Re-run OAuth setup.");
