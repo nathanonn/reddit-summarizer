@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Fetches and summarizes Reddit posts by engagement thresholds",
   "scripts": {
-    "dev": "tsx src/index.ts"
+    "dev": "tsx -r dotenv/config src/index.ts"
   },
   "dependencies": {
     "express": "^4.21.0",
