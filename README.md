@@ -264,15 +264,26 @@ GET /api/logs/typescript/2026-03-23
 
 Returns an array of posts with their comments.
 
-### Status
+### Health
 
-#### `GET /api/status`
+#### `GET /api/health`
 
-Check whether a refresh token is configured:
+End-to-end connectivity check: refreshes the access token and calls Reddit's `/api/v1/me`. Use this before scraping to verify credentials and API reachability.
+
+Returns `200` on success, `503` on failure.
 
 ```json
 {
-    "connected": true
+    "ok": true,
+    "checks": {
+        "refreshToken": "ok",
+        "identity": { "ok": true, "username": "u/yourname" }
+    },
+    "rateLimit": {
+        "remaining": 996,
+        "resetSeconds": 540,
+        "resetAt": "2026-04-21T12:34:56.000Z"
+    }
 }
 ```
 

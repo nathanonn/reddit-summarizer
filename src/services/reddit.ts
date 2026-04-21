@@ -89,6 +89,45 @@ export function clearCachedToken(): void {
   cachedToken = null;
 }
 
+export interface RedditIdentity {
+  username: string;
+}
+
+/**
+ * Fetch the authenticated user's identity from Reddit.
+ * Used as a lightweight end-to-end connectivity check.
+ */
+export async function fetchIdentity(): Promise<RedditIdentity> {
+  const token = await ensureAccessToken();
+
+  let response;
+  try {
+    response = await redditAxios.get('https://oauth.reddit.com/api/v1/me', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  } catch (err: any) {
+    if (err.response) {
+      const status = err.response.status;
+      if (status === 401 || status === 403) {
+        throw new RedditApiError(401, 'Reddit access token rejected by /api/v1/me. Re-run OAuth setup.');
+      }
+      throw new RedditApiError(status, `Reddit API error: ${status}`);
+    }
+    throw new RedditApiError(502, 'Reddit API unreachable');
+  }
+
+  updateRateLimit(response.headers);
+
+  const name = response.data?.name;
+  if (!name) {
+    throw new RedditApiError(502, 'Reddit /api/v1/me returned no username');
+  }
+
+  return { username: `u/${name}` };
+}
+
 /**
  * Fetch recent posts from a subreddit within the given time window.
  * Paginates up to 10 pages and stops when posts fall outside the time range.

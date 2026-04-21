@@ -73,10 +73,11 @@
     (async function checkStatus() {
       const statusEl = document.getElementById('status');
       try {
-        const res = await fetch('/api/status');
+        const res = await fetch('/api/health');
         const data = await res.json();
-        if (data.connected) {
-          statusEl.textContent = 'Connected';
+        if (data.ok) {
+          const who = data.checks?.identity?.username;
+          statusEl.textContent = who ? `Connected as ${who}` : 'Connected';
           statusEl.className = 'status connected';
         } else {
           statusEl.textContent = 'Not Connected';

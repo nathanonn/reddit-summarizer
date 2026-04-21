@@ -52,6 +52,21 @@ export async function checkRateLimit(): Promise<void> {
 }
 
 /**
+ * Snapshot of the most recent rate-limit headers seen from Reddit.
+ */
+export function getRateLimitSnapshot(): {
+  remaining: number | null;
+  resetSeconds: number | null;
+  resetAt: string | null;
+} {
+  return {
+    remaining: rateLimitRemaining,
+    resetSeconds: rateLimitResetSeconds,
+    resetAt: rateLimitResetAt ? new Date(rateLimitResetAt).toISOString() : null,
+  };
+}
+
+/**
  * Reset rate limit state (for testing).
  */
 export function resetRateLimitState(): void {

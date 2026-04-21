@@ -1,8 +1,9 @@
 import { Router } from 'express';
 import { loadConfig } from '../config';
 import { AppConfig, OutputMode } from '../types';
-import { ensureAccessToken, fetchPosts, fetchComments, filterPosts, RedditApiError } from '../services/reddit';
+import { ensureAccessToken, fetchPosts, fetchComments, filterPosts, fetchIdentity, RedditApiError } from '../services/reddit';
 import { savePosts, readLog, listLogs } from '../services/storage';
+import { getRateLimitSnapshot } from '../utils/rateLimit';
 
 const router = Router();
 
@@ -19,9 +20,48 @@ function getConfig(): AppConfig {
   return _config;
 }
 
-// Status endpoint
-router.get('/status', (_req, res) => {
-  res.json({ connected: !!process.env.REDDIT_REFRESH_TOKEN });
+// Health endpoint — end-to-end Reddit connectivity check
+router.get('/health', async (_req, res) => {
+  const checks: Record<string, any> = {
+    refreshToken: 'pending',
+    identity: { ok: false },
+  };
+
+  if (!process.env.REDDIT_REFRESH_TOKEN) {
+    checks.refreshToken = 'missing';
+    res.status(503).json({
+      ok: false,
+      checks,
+      error: 'Reddit refresh token not configured. Complete OAuth setup first.',
+    });
+    return;
+  }
+
+  try {
+    await ensureAccessToken();
+    checks.refreshToken = 'ok';
+  } catch (err) {
+    checks.refreshToken = 'error';
+    const message = err instanceof RedditApiError ? err.message : 'Failed to refresh access token';
+    res.status(503).json({ ok: false, checks, error: message });
+    return;
+  }
+
+  try {
+    const identity = await fetchIdentity();
+    checks.identity = { ok: true, username: identity.username };
+  } catch (err) {
+    const message = err instanceof RedditApiError ? err.message : 'Reddit identity check failed';
+    checks.identity = { ok: false, error: message };
+    res.status(503).json({ ok: false, checks, error: message });
+    return;
+  }
+
+  res.status(200).json({
+    ok: true,
+    checks,
+    rateLimit: getRateLimitSnapshot(),
+  });
 });
 
 // POST /collect — Collect posts for one subreddit
